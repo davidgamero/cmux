@@ -4782,6 +4782,7 @@ class GhosttyNSView: NSView, NSUserInterfaceValidations {
             layerScale: layerScale,
             backingSize: backingSize
         )
+        if surfaceSizeChanged && linkHintsActive { dismissLinkHints() }
         return didChange || surfaceSizeChanged
     }
 

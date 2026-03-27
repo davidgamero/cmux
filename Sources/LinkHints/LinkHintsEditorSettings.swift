@@ -23,10 +23,7 @@ enum LinkHintsEditor: String, CaseIterable, Identifiable {
         case .zed:
             return "Zed"
         case .neovim:
-            var args = [String]()
-            if let line { args.append("+\(line)") }
-            args.append(file)
-            return ("nvim", args)
+            return "Neovim"
         case .sublimeText:
             return "Sublime Text"
         case .custom:
