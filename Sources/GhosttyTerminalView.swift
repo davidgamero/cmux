@@ -4277,6 +4277,8 @@ class GhosttyNSView: NSView, NSUserInterfaceValidations {
     /// a 1-cell selection as a visible cursor. This flag determines whether
     /// movements should extend the selection (visual) or scroll the viewport.
     private var keyboardCopyModeVisualActive = false
+    private var linkHintsActive = false
+    private var linkHintsState: LinkHintsState?
     fileprivate var isKeyboardCopyModeActive: Bool { keyboardCopyModeActive }
     fileprivate var currentKeyStateIndicatorText: String? {
         if let name = keyTables.last {
@@ -4874,7 +4876,123 @@ class GhosttyNSView: NSView, NSUserInterfaceValidations {
         return true
     }
 
+    func toggleLinkHints() {
+        if linkHintsActive {
+            dismissLinkHints()
+            return
+        }
+
+        if keyboardCopyModeActive {
+            #if DEBUG
+            dlog("link-hints: rejected — copy mode is active")
+            #endif
+            return
+        }
+
+        guard let surface = surface else { return }
+
+        let topLeft = ghostty_point_s(
+            tag: GHOSTTY_POINT_VIEWPORT,
+            coord: GHOSTTY_POINT_COORD_TOP_LEFT,
+            x: 0,
+            y: 0
+        )
+        let bottomRight = ghostty_point_s(
+            tag: GHOSTTY_POINT_VIEWPORT,
+            coord: GHOSTTY_POINT_COORD_BOTTOM_RIGHT,
+            x: 0,
+            y: 0
+        )
+        let selection = ghostty_selection_s(
+            top_left: topLeft,
+            bottom_right: bottomRight,
+            rectangle: false
+        )
+
+        var text = ghostty_text_s()
+        guard ghostty_surface_read_text(surface, selection, &text) else {
+            #if DEBUG
+            dlog("link-hints: failed to read viewport text")
+            #endif
+            return
+        }
+        defer {
+            ghostty_surface_free_text(surface, &text)
+        }
+
+        guard let ptr = text.text, text.text_len > 0 else {
+            #if DEBUG
+            dlog("link-hints: viewport text is empty")
+            #endif
+            return
+        }
+
+        let viewportText = String(
+            bytesNoCopy: UnsafeMutableRawPointer(mutating: ptr),
+            length: Int(text.text_len),
+            encoding: .utf8,
+            freeWhenDone: false
+        ) ?? ""
+
+        guard !viewportText.isEmpty else { return }
+
+        let links = extractLinks(from: viewportText)
+        guard !links.isEmpty else {
+            #if DEBUG
+            dlog("link-hints: no links found in viewport")
+            #endif
+            return
+        }
+
+        let labels = generateHintLabels(count: links.count)
+
+        let size = ghostty_surface_size(surface)
+        let columns = Int(size.columns)
+        let cellWidthPx = CGFloat(size.cell_width_px)
+        let cellHeightPx = CGFloat(size.cell_height_px)
+
+        let byteOffsets = links.map { $0.byteRange.lowerBound }
+        let cellPositions = mapByteOffsetsToCellPositions(
+            text: viewportText,
+            byteOffsets: byteOffsets,
+            columns: columns
+        )
+
+        var hintedLinks: [LinkHintsState.HintedLink] = []
+        for (i, link) in links.enumerated() {
+            guard i < labels.count, i < cellPositions.count else { break }
+            let cellPos = cellPositions[i]
+            let pixelX = CGFloat(cellPos.col) * cellWidthPx + cellWidthPx / 2.0
+            let pixelY = CGFloat(cellPos.row) * cellHeightPx + cellHeightPx / 2.0
+            hintedLinks.append(LinkHintsState.HintedLink(
+                link: link,
+                label: labels[i],
+                pixelX: pixelX,
+                pixelY: pixelY
+            ))
+        }
+
+        let state = LinkHintsState(hints: hintedLinks)
+        linkHintsState = state
+        linkHintsActive = true
+
+        let surfaceSize = CGSize(
+            width: CGFloat(size.width_px),
+            height: CGFloat(size.height_px)
+        )
+        terminalSurface?.hostedView.setLinkHintsOverlay(
+            hints: state.allHints,
+            inputBuffer: "",
+            surfaceSize: surfaceSize
+        )
+
+        #if DEBUG
+        dlog("link-hints: activated with \(hintedLinks.count) hints")
+        #endif
+    }
+
     private func setKeyboardCopyModeActive(_ active: Bool) {
+        if active && linkHintsActive { dismissLinkHints() }
         keyboardCopyModeInputState.reset()
         keyboardCopyModeVisualActive = false
         keyboardCopyModeActive = active
@@ -4989,6 +5107,111 @@ class GhosttyNSView: NSView, NSUserInterfaceValidations {
         guard ghostty_surface_has_selection(surface) else { return false }
 
         return performBindingAction("copy_to_clipboard")
+    }
+
+    private func handleLinkHintsModeIfNeeded(_ event: NSEvent, surface: ghostty_surface_t) -> Bool {
+        guard linkHintsActive else { return false }
+
+        // Allow system shortcuts (⌘C, ⌘V, etc.) to pass through
+        if event.modifierFlags.contains(.command) {
+            return false
+        }
+
+        // Escape → dismiss
+        if event.keyCode == 53 {
+            dismissLinkHints()
+            return true
+        }
+
+        // Backspace → delete last character
+        if event.keyCode == 51 {
+            linkHintsState?.deleteLastCharacter()
+            updateLinkHintsOverlay(surface: surface)
+            return true
+        }
+
+        // Printable character → append to filter
+        guard let chars = event.charactersIgnoringModifiers, let char = chars.first,
+              char.isLetter || char.isNumber else {
+            return true  // Consume non-printable keys while active
+        }
+
+        linkHintsState?.appendCharacter(char)
+
+        // Check if a hint was uniquely selected
+        if let selected = linkHintsState?.selectedHint {
+            // Store the link to open, then dismiss
+            let linkToOpen = selected.link
+            dismissLinkHints()
+            openExtractedLink(linkToOpen)
+            return true
+        }
+
+        // Update overlay with filtered hints
+        updateLinkHintsOverlay(surface: surface)
+        return true
+    }
+
+    private func updateLinkHintsOverlay(surface: ghostty_surface_t) {
+        guard let state = linkHintsState else { return }
+        let size = ghostty_surface_size(surface)
+        let surfaceSize = CGSize(
+            width: CGFloat(size.width_px),
+            height: CGFloat(size.height_px)
+        )
+        terminalSurface?.hostedView.setLinkHintsOverlay(
+            hints: state.filteredHints,
+            inputBuffer: state.inputBuffer,
+            surfaceSize: surfaceSize
+        )
+    }
+
+    private func dismissLinkHints() {
+        linkHintsActive = false
+        linkHintsState = nil
+        terminalSurface?.hostedView.dismissLinkHintsOverlay()
+    }
+
+    private func openExtractedLink(_ link: ExtractedLink) {
+        switch link.type {
+        case .url:
+            guard let url = URL(string: link.text) else {
+                #if DEBUG
+                dlog("link-hints: invalid URL: \(link.text)")
+                #endif
+                return
+            }
+            #if DEBUG
+            dlog("link-hints: opening URL: \(url)")
+            #endif
+            NSWorkspace.shared.open(url)
+
+        case .filePath:
+            let pathText = link.text
+            // Strip trailing :line:col suffix for file opening
+            let pathOnly: String
+            if let colonRange = pathText.range(of: ":\\d+", options: .regularExpression) {
+                pathOnly = String(pathText[pathText.startIndex..<colonRange.lowerBound])
+            } else {
+                pathOnly = pathText
+            }
+
+            // Resolve relative paths against terminal CWD
+            var resolvedPath = pathOnly
+            if !pathOnly.hasPrefix("/") && !pathOnly.hasPrefix("~") {
+                if let cwd = terminalSurface?.requestedWorkingDirectory {
+                    resolvedPath = (cwd as NSString).appendingPathComponent(pathOnly)
+                }
+            } else if pathOnly.hasPrefix("~") {
+                resolvedPath = NSString(string: pathOnly).expandingTildeInPath
+            }
+
+            let fileURL = URL(fileURLWithPath: resolvedPath)
+            #if DEBUG
+            dlog("link-hints: opening file: \(fileURL.path)")
+            #endif
+            NSWorkspace.shared.open(fileURL)
+        }
     }
 
     private func handleKeyboardCopyModeIfNeeded(_ event: NSEvent, surface: ghostty_surface_t) -> Bool {
@@ -5286,6 +5509,7 @@ class GhosttyNSView: NSView, NSUserInterfaceValidations {
     override func resignFirstResponder() -> Bool {
         let result = super.resignFirstResponder()
         if result {
+            if linkHintsActive { dismissLinkHints() }
             desiredFocus = false
         }
         if result, let surface = surface {
@@ -5543,6 +5767,8 @@ class GhosttyNSView: NSView, NSUserInterfaceValidations {
         if shouldConsumeSuppressedFindEscape(event) {
             return
         }
+        if handleLinkHintsModeIfNeeded(event, surface: surface) { return }
+
 #if DEBUG
         let keyboardCopyModeStart = ProcessInfo.processInfo.systemUptime
 #endif
@@ -6390,6 +6616,7 @@ class GhosttyNSView: NSView, NSUserInterfaceValidations {
     }
 
     override func scrollWheel(with event: NSEvent) {
+        if linkHintsActive { dismissLinkHints() }
         NotificationCenter.default.post(name: .ghosttyDidReceiveWheelScroll, object: self)
         guard let surface = surface else { return }
         lastScrollEventTime = CACurrentMediaTime()
@@ -6912,6 +7139,7 @@ final class GhosttySurfaceScrollView: NSView {
     private let imageTransferIndicatorSpinner: NSProgressIndicator
     private let imageTransferCancelButton: NSButton
     private var searchOverlayHostingView: NSHostingView<SurfaceSearchOverlay>?
+    private var linkHintsOverlayHostingView: NSHostingView<LinkHintsOverlayView>?
     private var deferredSearchOverlayMutationWorkItem: DispatchWorkItem?
     private var imageTransferIndicatorShowWorkItem: DispatchWorkItem?
     private var activeImageTransferOperation: TerminalImageTransferOperation?
@@ -8053,6 +8281,39 @@ final class GhosttySurfaceScrollView: NSView {
                 force: true
             )
         }
+    }
+
+    func setLinkHintsOverlay(hints: [LinkHintsState.HintedLink], inputBuffer: String, surfaceSize: CGSize) {
+        if hints.isEmpty {
+            linkHintsOverlayHostingView?.removeFromSuperview()
+            linkHintsOverlayHostingView = nil
+            return
+        }
+        let overlayView = LinkHintsOverlayView(hints: hints, inputBuffer: inputBuffer, surfaceSize: surfaceSize)
+        if let existing = linkHintsOverlayHostingView {
+            existing.rootView = overlayView
+        } else {
+            let hostingView = NSHostingView(rootView: overlayView)
+            hostingView.frame = bounds
+            hostingView.autoresizingMask = [.width, .height]
+            addSubview(hostingView)
+            linkHintsOverlayHostingView = hostingView
+        }
+        updateLinkHintsOverlayZOrder()
+    }
+
+    private func updateLinkHintsOverlayZOrder() {
+        guard let hostingView = linkHintsOverlayHostingView else { return }
+        hostingView.layer?.zPosition = 1000
+    }
+
+    func dismissLinkHintsOverlay() {
+        linkHintsOverlayHostingView?.removeFromSuperview()
+        linkHintsOverlayHostingView = nil
+    }
+
+    func toggleLinkHints() {
+        surfaceView.toggleLinkHints()
     }
 
     func syncKeyStateIndicator(text: String?) {
