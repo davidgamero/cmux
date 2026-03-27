@@ -11,36 +11,6 @@ enum LinkHintsEditor: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var isAvailable: Bool {
-        guard let executable = cliExecutable else { return true }
-        return Self.executableExists(executable)
-    }
-
-    private var cliExecutable: String? {
-        switch self {
-        case .systemDefault, .custom: return nil
-        case .vscode: return "code"
-        case .cursor: return "cursor"
-        case .zed: return "zed"
-        case .sublimeText: return "subl"
-        }
-    }
-
-    private static func executableExists(_ name: String) -> Bool {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        task.arguments = [name]
-        task.standardOutput = FileHandle.nullDevice
-        task.standardError = FileHandle.nullDevice
-        do {
-            try task.run()
-            task.waitUntilExit()
-            return task.terminationStatus == 0
-        } catch {
-            return false
-        }
-    }
-
     var displayName: String {
         switch self {
         case .systemDefault:

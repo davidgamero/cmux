@@ -5081,7 +5081,7 @@ struct SettingsView: View {
                             controlWidth: pickerColumnWidth,
                             selection: $linkHintsEditor
                         ) {
-                            ForEach(LinkHintsEditor.allCases.filter(\.isAvailable)) { editor in
+                            ForEach(LinkHintsEditor.allCases) { editor in
                                 Text(editor.displayName).tag(editor.rawValue)
                             }
                         }
