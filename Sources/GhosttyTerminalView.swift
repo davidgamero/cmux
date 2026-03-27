@@ -5227,6 +5227,7 @@ class GhosttyNSView: NSView, NSUserInterfaceValidations {
             #if DEBUG
             dlog("link-hints: opening file: \(resolvedPath) line:\(link.lineNumber ?? 0) col:\(link.column ?? 0)")
             #endif
+
             LinkHintsEditorSettings.openFile(path: resolvedPath, line: link.lineNumber, col: link.column)
         }
     }

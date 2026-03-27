@@ -5081,7 +5081,7 @@ struct SettingsView: View {
                             controlWidth: pickerColumnWidth,
                             selection: $linkHintsEditor
                         ) {
-                            ForEach(LinkHintsEditor.allCases) { editor in
+                            ForEach(LinkHintsEditor.allCases.filter(\.isAvailable)) { editor in
                                 Text(editor.displayName).tag(editor.rawValue)
                             }
                         }
@@ -5091,7 +5091,7 @@ struct SettingsView: View {
                                 String(localized: "settings.automation.linkHintsEditor.customCommand", defaultValue: "Custom Command"),
                                 subtitle: String(localized: "settings.automation.linkHintsEditor.customCommand.subtitle", defaultValue: "Use {file}, {line}, {col} placeholders.")
                             ) {
-                                TextField("e.g. code --goto {file}:{line}:{col}", text: $linkHintsEditorCustomCommand)
+                                TextField("e.g. nvim +{line} {file}", text: $linkHintsEditorCustomCommand)
                                     .textFieldStyle(.roundedBorder)
                                     .frame(width: 280)
                             }

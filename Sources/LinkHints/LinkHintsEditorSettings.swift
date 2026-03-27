@@ -6,11 +6,40 @@ enum LinkHintsEditor: String, CaseIterable, Identifiable {
     case vscode
     case cursor
     case zed
-    case neovim
     case sublimeText
     case custom
 
     var id: String { rawValue }
+
+    var isAvailable: Bool {
+        guard let executable = cliExecutable else { return true }
+        return Self.executableExists(executable)
+    }
+
+    private var cliExecutable: String? {
+        switch self {
+        case .systemDefault, .custom: return nil
+        case .vscode: return "code"
+        case .cursor: return "cursor"
+        case .zed: return "zed"
+        case .sublimeText: return "subl"
+        }
+    }
+
+    private static func executableExists(_ name: String) -> Bool {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/which")
+        task.arguments = [name]
+        task.standardOutput = FileHandle.nullDevice
+        task.standardError = FileHandle.nullDevice
+        do {
+            try task.run()
+            task.waitUntilExit()
+            return task.terminationStatus == 0
+        } catch {
+            return false
+        }
+    }
 
     var displayName: String {
         switch self {
@@ -22,8 +51,6 @@ enum LinkHintsEditor: String, CaseIterable, Identifiable {
             return "Cursor"
         case .zed:
             return "Zed"
-        case .neovim:
-            return "Neovim"
         case .sublimeText:
             return "Sublime Text"
         case .custom:
@@ -50,8 +77,6 @@ enum LinkHintsEditor: String, CaseIterable, Identifiable {
             if let line { target += ":\(line)" }
             if let line, let col { target = "\(file):\(line):\(col)" }
             return ("zed", [target])
-        case .neovim:
-            return nil  // Handled specially — opens in a new cmux tab
         case .sublimeText:
             var target = file
             if let line { target += ":\(line)" }
