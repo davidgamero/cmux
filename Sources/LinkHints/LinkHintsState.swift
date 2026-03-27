@@ -7,8 +7,11 @@ struct LinkHintsState {
     struct HintedLink {
         let link: ExtractedLink
         let label: String
-        let pixelX: CGFloat   // Pixel X position for overlay
-        let pixelY: CGFloat   // Pixel Y position for overlay
+        let pixelX: CGFloat
+        let pixelY: CGFloat
+        let cellWidthPx: CGFloat
+        let cellHeightPx: CGFloat
+        let linkCellWidth: Int
     }
 
     private(set) var allHints: [HintedLink]

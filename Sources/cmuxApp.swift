@@ -3850,6 +3850,8 @@ struct SettingsView: View {
     @AppStorage(PaneFirstClickFocusSettings.enabledKey)
     private var paneFirstClickFocusEnabled = PaneFirstClickFocusSettings.defaultEnabled
     @AppStorage(WorkspaceAutoReorderSettings.key) private var workspaceAutoReorder = WorkspaceAutoReorderSettings.defaultValue
+    @AppStorage(LinkHintsEditorSettings.editorKey) private var linkHintsEditor = LinkHintsEditorSettings.defaultEditor.rawValue
+    @AppStorage(LinkHintsEditorSettings.customCommandKey) private var linkHintsEditorCustomCommand = LinkHintsEditorSettings.defaultCustomCommand
     @AppStorage(SidebarWorkspaceDetailSettings.hideAllDetailsKey)
     private var sidebarHideAllDetails = SidebarWorkspaceDetailSettings.defaultHideAllDetails
     @AppStorage(SidebarWorkspaceDetailSettings.showNotificationMessageKey)
@@ -3975,6 +3977,10 @@ struct SettingsView: View {
 
     private var selectedBrowserThemeMode: BrowserThemeMode {
         BrowserThemeSettings.mode(for: browserThemeMode)
+    }
+
+    private var selectedLinkHintsEditor: LinkHintsEditor {
+        LinkHintsEditor(rawValue: linkHintsEditor) ?? .systemDefault
     }
 
     private var browserThemeModeSelection: Binding<String> {
@@ -5069,6 +5075,32 @@ struct SettingsView: View {
                     }
 
                     SettingsCard {
+                        SettingsPickerRow(
+                            String(localized: "settings.automation.linkHintsEditor", defaultValue: "Link Hints Editor"),
+                            subtitle: String(localized: "settings.automation.linkHintsEditor.subtitle", defaultValue: "Editor used to open file paths from link hints."),
+                            controlWidth: pickerColumnWidth,
+                            selection: $linkHintsEditor
+                        ) {
+                            ForEach(LinkHintsEditor.allCases) { editor in
+                                Text(editor.displayName).tag(editor.rawValue)
+                            }
+                        }
+                        if selectedLinkHintsEditor == .custom {
+                            SettingsCardDivider()
+                            SettingsCardRow(
+                                String(localized: "settings.automation.linkHintsEditor.customCommand", defaultValue: "Custom Command"),
+                                subtitle: String(localized: "settings.automation.linkHintsEditor.customCommand.subtitle", defaultValue: "Use {file}, {line}, {col} placeholders.")
+                            ) {
+                                TextField("e.g. code --goto {file}:{line}:{col}", text: $linkHintsEditorCustomCommand)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 280)
+                            }
+                        }
+                        SettingsCardDivider()
+                        SettingsCardNote(String(localized: "settings.automation.linkHintsEditor.note", defaultValue: "When you activate link hints (⌘⇧E) and select a file path, it opens in this editor at the detected line and column."))
+                    }
+
+                    SettingsCard {
                         SettingsCardRow(String(localized: "settings.automation.portBase", defaultValue: "Port Base"), subtitle: String(localized: "settings.automation.portBase.subtitle", defaultValue: "Starting port for CMUX_PORT env var."), controlWidth: pickerColumnWidth) {
                             TextField("", value: $cmuxPortBase, format: .number)
                                 .textFieldStyle(.roundedBorder)
@@ -5656,6 +5688,8 @@ struct SettingsView: View {
         closeWorkspaceOnLastSurfaceShortcut = LastSurfaceCloseShortcutSettings.defaultValue
         paneFirstClickFocusEnabled = PaneFirstClickFocusSettings.defaultEnabled
         workspaceAutoReorder = WorkspaceAutoReorderSettings.defaultValue
+        linkHintsEditor = LinkHintsEditorSettings.defaultEditor.rawValue
+        linkHintsEditorCustomCommand = LinkHintsEditorSettings.defaultCustomCommand
         sidebarHideAllDetails = SidebarWorkspaceDetailSettings.defaultHideAllDetails
         sidebarShowNotificationMessage = SidebarWorkspaceDetailSettings.defaultShowNotificationMessage
         sidebarBranchVerticalLayout = SidebarBranchLayoutSettings.defaultVerticalLayout

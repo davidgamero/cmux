@@ -127,7 +127,15 @@
 					8C4BBF2DEF6DF93F395A9EE7 /* TerminalControllerSocketSecurityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 491751CE2321474474F27DCF /* TerminalControllerSocketSecurityTests.swift */; };
 					2BB56A710BB1FC50367E5BCF /* TabManagerSessionSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D684CFFB8CDEF89CE2D9E1 /* TabManagerSessionSnapshotTests.swift */; };
 					C1A2B3C4D5E6F70800000001 /* CmuxConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A2B3C4D5E6F70800000002 /* CmuxConfigTests.swift */; };
-		/* End PBXBuildFile section */
+			LH000001 /* ExtractedLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = LH000011 /* ExtractedLink.swift */; };
+		LH000002 /* HintLabelGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = LH000012 /* HintLabelGenerator.swift */; };
+		LH000003 /* LinkExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = LH000013 /* LinkExtractor.swift */; };
+		LH000004 /* LinkHintsOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LH000014 /* LinkHintsOverlayView.swift */; };
+		LH000005 /* LinkHintsState.swift in Sources */ = {isa = PBXBuildFile; fileRef = LH000015 /* LinkHintsState.swift */; };
+		LH000006 /* TextCellMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = LH000016 /* TextCellMapper.swift */; };
+		LH000007 /* LinkHintsStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = LH000017 /* LinkHintsStateMachineTests.swift */; };
+		LH000008 /* LinkHintsEditorSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = LH000018 /* LinkHintsEditorSettings.swift */; };
+	/* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		A5001020 /* Embed Frameworks */ = {
@@ -300,6 +308,14 @@
 				491751CE2321474474F27DCF /* TerminalControllerSocketSecurityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalControllerSocketSecurityTests.swift; sourceTree = "<group>"; };
 				10D684CFFB8CDEF89CE2D9E1 /* TabManagerSessionSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabManagerSessionSnapshotTests.swift; sourceTree = "<group>"; };
 				C1A2B3C4D5E6F70800000002 /* CmuxConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CmuxConfigTests.swift; sourceTree = "<group>"; };
+		LH000011 /* ExtractedLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkHints/ExtractedLink.swift; sourceTree = "<group>"; };
+		LH000012 /* HintLabelGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkHints/HintLabelGenerator.swift; sourceTree = "<group>"; };
+		LH000013 /* LinkExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkHints/LinkExtractor.swift; sourceTree = "<group>"; };
+		LH000014 /* LinkHintsOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkHints/LinkHintsOverlayView.swift; sourceTree = "<group>"; };
+		LH000015 /* LinkHintsState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkHints/LinkHintsState.swift; sourceTree = "<group>"; };
+		LH000016 /* TextCellMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkHints/TextCellMapper.swift; sourceTree = "<group>"; };
+		LH000018 /* LinkHintsEditorSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkHints/LinkHintsEditorSettings.swift; sourceTree = "<group>"; };
+		LH000017 /* LinkHintsStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkHintsStateMachineTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -469,6 +485,13 @@
 				A5001651 /* CmuxConfig.swift */,
 				A5001653 /* CmuxConfigExecutor.swift */,
 				A5001655 /* CmuxDirectoryTrust.swift */,
+				LH000011 /* ExtractedLink.swift */,
+				LH000012 /* HintLabelGenerator.swift */,
+				LH000013 /* LinkExtractor.swift */,
+				LH000014 /* LinkHintsOverlayView.swift */,
+				LH000015 /* LinkHintsState.swift */,
+				LH000016 /* TextCellMapper.swift */,
+				LH000018 /* LinkHintsEditorSettings.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -559,6 +582,7 @@
 					491751CE2321474474F27DCF /* TerminalControllerSocketSecurityTests.swift */,
 					10D684CFFB8CDEF89CE2D9E1 /* TabManagerSessionSnapshotTests.swift */,
 					C1A2B3C4D5E6F70800000002 /* CmuxConfigTests.swift */,
+					LH000017 /* LinkHintsStateMachineTests.swift */,
 				);
 				path = cmuxTests;
 				sourceTree = "<group>";
@@ -768,6 +792,13 @@
 				A5001650 /* CmuxConfig.swift in Sources */,
 				A5001652 /* CmuxConfigExecutor.swift in Sources */,
 				A5001654 /* CmuxDirectoryTrust.swift in Sources */,
+				LH000001 /* ExtractedLink.swift in Sources */,
+				LH000002 /* HintLabelGenerator.swift in Sources */,
+				LH000003 /* LinkExtractor.swift in Sources */,
+				LH000004 /* LinkHintsOverlayView.swift in Sources */,
+				LH000005 /* LinkHintsState.swift in Sources */,
+				LH000006 /* TextCellMapper.swift in Sources */,
+				LH000008 /* LinkHintsEditorSettings.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -826,6 +857,7 @@
 					8C4BBF2DEF6DF93F395A9EE7 /* TerminalControllerSocketSecurityTests.swift in Sources */,
 					2BB56A710BB1FC50367E5BCF /* TabManagerSessionSnapshotTests.swift in Sources */,
 					C1A2B3C4D5E6F70800000001 /* CmuxConfigTests.swift in Sources */,
+					LH000007 /* LinkHintsStateMachineTests.swift in Sources */,
 				);
 				runOnlyForDeploymentPostprocessing = 0;
 			};

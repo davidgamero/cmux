@@ -4948,8 +4948,9 @@ class GhosttyNSView: NSView, NSUserInterfaceValidations {
 
         let size = ghostty_surface_size(surface)
         let columns = Int(size.columns)
-        let cellWidthPx = CGFloat(size.cell_width_px)
-        let cellHeightPx = CGFloat(size.cell_height_px)
+        let scale = max(1.0, terminalSurface?.hostedView.window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 1.0)
+        let cellWidthPx = CGFloat(size.cell_width_px) / scale
+        let cellHeightPx = CGFloat(size.cell_height_px) / scale
 
         let byteOffsets = links.map { $0.byteRange.lowerBound }
         let cellPositions = mapByteOffsetsToCellPositions(
@@ -4964,11 +4965,28 @@ class GhosttyNSView: NSView, NSUserInterfaceValidations {
             let cellPos = cellPositions[i]
             let pixelX = CGFloat(cellPos.col) * cellWidthPx + cellWidthPx / 2.0
             let pixelY = CGFloat(cellPos.row) * cellHeightPx + cellHeightPx / 2.0
+            let linkCellWidth = link.text.reduce(0) { sum, ch in
+                guard let scalar = ch.unicodeScalars.first else { return sum + 1 }
+                let v = scalar.value
+                let isWide = (v >= 0x1100 && v <= 0x115F)
+                    || (v >= 0x2E80 && v <= 0xA4CF)
+                    || (v >= 0xAC00 && v <= 0xD7AF)
+                    || (v >= 0xF900 && v <= 0xFAFF)
+                    || (v >= 0xFE10 && v <= 0xFE6F)
+                    || (v >= 0xFF01 && v <= 0xFF60)
+                    || (v >= 0xFFE0 && v <= 0xFFE6)
+                    || (v >= 0x20000 && v <= 0x2FFFD)
+                    || (v >= 0x30000 && v <= 0x3FFFD)
+                return sum + (isWide ? 2 : 1)
+            }
             hintedLinks.append(LinkHintsState.HintedLink(
                 link: link,
                 label: labels[i],
                 pixelX: pixelX,
-                pixelY: pixelY
+                pixelY: pixelY,
+                cellWidthPx: cellWidthPx,
+                cellHeightPx: cellHeightPx,
+                linkCellWidth: linkCellWidth
             ))
         }
 
@@ -4977,8 +4995,8 @@ class GhosttyNSView: NSView, NSUserInterfaceValidations {
         linkHintsActive = true
 
         let surfaceSize = CGSize(
-            width: CGFloat(size.width_px),
-            height: CGFloat(size.height_px)
+            width: CGFloat(size.width_px) / scale,
+            height: CGFloat(size.height_px) / scale
         )
         terminalSurface?.hostedView.setLinkHintsOverlay(
             hints: state.allHints,
@@ -5155,9 +5173,10 @@ class GhosttyNSView: NSView, NSUserInterfaceValidations {
     private func updateLinkHintsOverlay(surface: ghostty_surface_t) {
         guard let state = linkHintsState else { return }
         let size = ghostty_surface_size(surface)
+        let scale = max(1.0, terminalSurface?.hostedView.window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 1.0)
         let surfaceSize = CGSize(
-            width: CGFloat(size.width_px),
-            height: CGFloat(size.height_px)
+            width: CGFloat(size.width_px) / scale,
+            height: CGFloat(size.height_px) / scale
         )
         terminalSurface?.hostedView.setLinkHintsOverlay(
             hints: state.filteredHints,
@@ -5188,7 +5207,6 @@ class GhosttyNSView: NSView, NSUserInterfaceValidations {
 
         case .filePath:
             let pathText = link.text
-            // Strip trailing :line:col suffix for file opening
             let pathOnly: String
             if let colonRange = pathText.range(of: ":\\d+", options: .regularExpression) {
                 pathOnly = String(pathText[pathText.startIndex..<colonRange.lowerBound])
@@ -5196,7 +5214,6 @@ class GhosttyNSView: NSView, NSUserInterfaceValidations {
                 pathOnly = pathText
             }
 
-            // Resolve relative paths against terminal CWD
             var resolvedPath = pathOnly
             if !pathOnly.hasPrefix("/") && !pathOnly.hasPrefix("~") {
                 if let cwd = terminalSurface?.requestedWorkingDirectory {
@@ -5206,11 +5223,10 @@ class GhosttyNSView: NSView, NSUserInterfaceValidations {
                 resolvedPath = NSString(string: pathOnly).expandingTildeInPath
             }
 
-            let fileURL = URL(fileURLWithPath: resolvedPath)
             #if DEBUG
-            dlog("link-hints: opening file: \(fileURL.path)")
+            dlog("link-hints: opening file: \(resolvedPath) line:\(link.lineNumber ?? 0) col:\(link.column ?? 0)")
             #endif
-            NSWorkspace.shared.open(fileURL)
+            LinkHintsEditorSettings.openFile(path: resolvedPath, line: link.lineNumber, col: link.column)
         }
     }
 
