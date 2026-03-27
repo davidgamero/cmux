@@ -1142,6 +1142,11 @@ class TabManager: ObservableObject {
         return panel.surface.toggleKeyboardCopyMode()
     }
 
+    func toggleFocusedTerminalLinkHints() {
+        guard let focusedSurface = selectedTerminalPanel?.surface.hostedView else { return }
+        focusedSurface.toggleLinkHints()
+    }
+
     func hideFind() {
         if let panel = selectedTerminalPanel {
             panel.searchState = nil

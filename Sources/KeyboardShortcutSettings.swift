@@ -46,6 +46,7 @@ enum KeyboardShortcutSettings {
         case openBrowser
         case toggleBrowserDeveloperTools
         case showBrowserJavaScriptConsole
+        case showLinkHints
 
         var id: String { rawValue }
 
@@ -83,6 +84,9 @@ enum KeyboardShortcutSettings {
             case .openBrowser: return String(localized: "shortcut.openBrowser.label", defaultValue: "Open Browser")
             case .toggleBrowserDeveloperTools: return String(localized: "shortcut.toggleBrowserDevTools.label", defaultValue: "Toggle Browser Developer Tools")
             case .showBrowserJavaScriptConsole: return String(localized: "shortcut.showBrowserJSConsole.label", defaultValue: "Show Browser JavaScript Console")
+            case .showLinkHints:
+                return String(localized: "shortcut.label.showLinkHints",
+                              defaultValue: "Show Link Hints")
             }
         }
 
@@ -120,6 +124,8 @@ enum KeyboardShortcutSettings {
             case .openBrowser: return "shortcut.openBrowser"
             case .toggleBrowserDeveloperTools: return "shortcut.toggleBrowserDeveloperTools"
             case .showBrowserJavaScriptConsole: return "shortcut.showBrowserJavaScriptConsole"
+            case .showLinkHints:
+                return "shortcut.showLinkHints"
             }
         }
 
@@ -191,6 +197,8 @@ enum KeyboardShortcutSettings {
             case .showBrowserJavaScriptConsole:
                 // Safari default: Show JavaScript Console.
                 return StoredShortcut(key: "c", command: true, shift: false, option: true, control: false)
+            case .showLinkHints:
+                return StoredShortcut(key: "e", command: true, shift: true, option: false, control: false)
             }
         }
 
